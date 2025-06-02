@@ -1,89 +1,48 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Theme, ThemeType } from '@/types/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from 'react-native';
+import { lightTheme, darkTheme, Theme } from '@/constants/theme';
 
-const lightTheme: Theme = {
-  dark: false,
-  colors: {
-    background: '#F7F9FC',
-    card: '#FFFFFF',
-    text: '#1A1F36',
-    border: '#E4E9F2',
-    primary: '#3A86FF',
-    secondary: '#8BB2FF',
-    success: '#2DCE89',
-    error: '#F5365C',
-    accent: '#FF9F1C',
-    inactive: '#A0AEC0'
-  }
-};
-
-const darkTheme: Theme = {
-  dark: true,
-  colors: {
-    background: '#1A1F36',
-    card: '#252D43',
-    text: '#F7F9FC',
-    border: '#323A4E',
-    primary: '#3A86FF',
-    secondary: '#8BB2FF',
-    success: '#2DCE89',
-    error: '#F5365C',
-    accent: '#FF9F1C',
-    inactive: '#718096'
-  }
-};
-
-interface ThemeContextProps {
+interface ThemeContextData {
   theme: Theme;
-  themeType: ThemeType;
-  toggleTheme: () => void;
+  themeType: 'light' | 'dark';
+  toggleTheme: () => Promise<void>;
 }
 
-const ThemeContext = createContext<ThemeContextProps | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextData>({} as ThemeContextData);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const systemColorScheme = useColorScheme();
-  const [themeType, setThemeType] = useState<ThemeType>('light');
-  const [isLoading, setIsLoading] = useState(true);
+  const [themeType, setThemeType] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
-    // Load saved theme from AsyncStorage
-    const loadTheme = async () => {
-      try {
-        const savedTheme = await AsyncStorage.getItem('@theme');
-        if (savedTheme) {
-          setThemeType(savedTheme as ThemeType);
-        } else {
-          // If no saved theme, use system preference
-          setThemeType(systemColorScheme === 'dark' ? 'dark' : 'light');
-        }
-      } catch (error) {
-        console.error('Error loading theme', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadTheme();
-  }, [systemColorScheme]);
+  }, []);
 
-  const toggleTheme = async () => {
-    const newTheme = themeType === 'light' ? 'dark' : 'light';
-    setThemeType(newTheme);
+  const loadTheme = async () => {
     try {
-      await AsyncStorage.setItem('@theme', newTheme);
+      const savedTheme = await AsyncStorage.getItem('@HabitControl:theme');
+      if (savedTheme) {
+        setThemeType(savedTheme as 'light' | 'dark');
+      } else {
+        setThemeType(systemColorScheme || 'light');
+      }
     } catch (error) {
-      console.error('Error saving theme', error);
+      console.error('Error loading theme:', error);
     }
   };
 
-  const theme = themeType === 'dark' ? darkTheme : lightTheme;
+  const toggleTheme = async () => {
+    try {
+      const newTheme = themeType === 'light' ? 'dark' : 'light';
+      setThemeType(newTheme);
+      await AsyncStorage.setItem('@HabitControl:theme', newTheme);
+    } catch (error) {
+      console.error('Error saving theme:', error);
+    }
+  };
 
-  if (isLoading) {
-    return null;
-  }
+  const theme = themeType === 'light' ? lightTheme : darkTheme;
 
   return (
     <ThemeContext.Provider value={{ theme, themeType, toggleTheme }}>

@@ -204,54 +204,62 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.content}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>
-            HabitControl
-          </Text>
-          
-          <Text style={[styles.subtitle, { color: theme.colors.text }]}>
-            {isLogin ? 'Faça login para continuar' : 'Crie sua conta'}
-          </Text>
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: theme.colors.text }]}>
+              HabitControl
+            </Text>
+            <Text style={[styles.subtitle, { color: theme.colors.text }]}>
+              {isLogin ? 'Bem-vindo de volta!' : 'Crie sua conta'}
+            </Text>
+          </View>
 
           <View style={styles.form}>
-            <Text style={[styles.label, { color: theme.colors.text }]}>E-mail</Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  color: theme.colors.text,
-                  borderColor: theme.colors.border,
-                  backgroundColor: theme.dark ? theme.colors.card : '#F9FAFC',
-                },
-              ]}
-              placeholder="Seu e-mail"
-              placeholderTextColor={theme.colors.inactive}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!loading}
-            />
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: theme.colors.text }]}>E-mail</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: theme.colors.text,
+                    borderColor: theme.colors.border,
+                    backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                  },
+                ]}
+                placeholder="Seu e-mail"
+                placeholderTextColor={theme.colors.inactive}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!loading}
+              />
+            </View>
 
-            <Text style={[styles.label, { color: theme.colors.text }]}>Senha</Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  color: theme.colors.text,
-                  borderColor: theme.colors.border,
-                  backgroundColor: theme.dark ? theme.colors.card : '#F9FAFC',
-                },
-              ]}
-              placeholder="Sua senha"
-              placeholderTextColor={theme.colors.inactive}
-              value={senha}
-              onChangeText={setSenha}
-              secureTextEntry
-              autoCapitalize="none"
-              editable={!loading}
-            />
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: theme.colors.text }]}>Senha</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: theme.colors.text,
+                    borderColor: theme.colors.border,
+                    backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                  },
+                ]}
+                placeholder="Sua senha"
+                placeholderTextColor={theme.colors.inactive}
+                value={senha}
+                onChangeText={setSenha}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!loading}
+              />
+            </View>
 
             <TouchableOpacity
               style={[
@@ -301,47 +309,64 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 24,
     justifyContent: 'center',
+    maxWidth: 400,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 48,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
+    fontSize: 36,
+    fontWeight: '700',
+    marginBottom: 12,
+    letterSpacing: -1,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 18,
+    opacity: 0.7,
     textAlign: 'center',
-    marginBottom: 32,
-    opacity: 0.8,
   },
   form: {
     width: '100%',
-    maxWidth: 400,
-    alignSelf: 'center',
+  },
+  inputContainer: {
+    marginBottom: 24,
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     marginBottom: 8,
-    fontWeight: '500',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    opacity: 0.7,
   },
   input: {
     width: '100%',
-    height: 48,
-    borderRadius: 8,
-    borderWidth: 1,
+    height: 52,
+    borderRadius: 12,
     paddingHorizontal: 16,
-    marginBottom: 16,
     fontSize: 16,
+    borderWidth: 1,
   },
   button: {
     width: '100%',
-    height: 48,
-    borderRadius: 8,
+    height: 52,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   buttonText: {
     color: '#FFF',
@@ -349,7 +374,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   switchButton: {
-    marginTop: 16,
+    marginTop: 24,
     alignItems: 'center',
   },
   switchText: {

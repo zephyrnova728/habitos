@@ -291,7 +291,7 @@ export default function InformacoesScreen() {
               
               <TouchableOpacity
                 style={[styles.contactButton, { backgroundColor: '#333' }]}
-                onPress={() => Linking.openURL('https://github.com/habticontrol')}
+                onPress={() => Linking.openURL('https://github.com/lordborge/habitcontrol')}
               >
                 <Github size={20} color="#FFF" />
                 <Text style={styles.contactButtonText}>GitHub</Text>
