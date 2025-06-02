@@ -29,11 +29,8 @@ export default function LoginScreen() {
     checkSession();
   }, []);
 
-  // Redirecionar se já estiver autenticado
   useEffect(() => {
-    console.log('Profile state changed:', profile?.email);
     if (profile) {
-      console.log('Redirecting to tabs due to profile presence');
       router.replace('/(tabs)');
     }
   }, [profile]);
@@ -41,19 +38,12 @@ export default function LoginScreen() {
   const checkSession = async () => {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
-      console.log('Current session:', session?.user?.email);
-      
-      if (error) {
-        console.error('Session check error:', error);
-        return;
-      }
-
+      if (error) return;
       if (session?.user) {
-        console.log('Active session found, redirecting...');
         router.replace('/(tabs)');
       }
     } catch (error) {
-      console.error('Error checking session:', error);
+      // ignore
     }
   };
 
@@ -65,9 +55,6 @@ export default function LoginScreen() {
 
     try {
       setLoading(true);
-      console.log('Starting account creation for:', email);
-      
-      // 1. Criar usuário na autenticação do Supabase
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password: senha.trim(),
@@ -76,10 +63,7 @@ export default function LoginScreen() {
         },
       });
 
-      console.log('Signup response:', { user: authData?.user?.email, error: signUpError });
-
       if (signUpError) {
-        console.error('Signup error:', signUpError);
         throw signUpError;
       }
 
@@ -87,34 +71,20 @@ export default function LoginScreen() {
         throw new Error('Não foi possível criar o usuário');
       }
 
-      // 2. Inserir usuário na tabela usuarios
-      console.log('Creating user in database:', {
-        id: authData.user.id,
-        email: authData.user.email
-      });
-
-      const { data: insertData, error: dbError } = await supabase
+      // Não armazene a senha no banco de dados!
+      const { error: dbError } = await supabase
         .from('usuarios')
         .insert([
           { 
             id: authData.user.id,
-            email: email.trim(),
-            senha: senha.trim() 
+            email: email.trim()
           }
-        ])
-        .select()
-        .single();
+        ]);
 
       if (dbError) {
-        console.error('Database error:', dbError);
-        
-        // Se houver erro ao criar na tabela, tentar deletar o usuário da autenticação
         await supabase.auth.admin.deleteUser(authData.user.id);
-        
         throw new Error('Erro ao criar usuário no banco de dados: ' + dbError.message);
       }
-
-      console.log('User created successfully:', insertData);
 
       Alert.alert(
         'Sucesso', 
@@ -129,7 +99,6 @@ export default function LoginScreen() {
         }]
       );
     } catch (error: any) {
-      console.error('Account creation error:', error);
       Alert.alert(
         'Erro', 
         error.message || 'Não foi possível criar a conta. Por favor, tente novamente.'
@@ -147,9 +116,7 @@ export default function LoginScreen() {
 
     try {
       setLoading(true);
-      console.log('Attempting login for:', email);
 
-      // 1. Tentar fazer login
       const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: senha.trim(),
@@ -161,38 +128,31 @@ export default function LoginScreen() {
         throw new Error('Não foi possível fazer login');
       }
 
-      // 2. Verificar se o usuário existe na tabela usuarios
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('*')
         .eq('email', authData.user.email)
         .single();
 
-      // Se o usuário não existir na tabela, criar
       if (userError && userError.code === 'PGRST116') {
-        console.log('User not found in database, creating...');
         const { error: insertError } = await supabase
           .from('usuarios')
           .insert([
             {
               id: authData.user.id,
-              email: authData.user.email,
-              senha: senha.trim()
+              email: authData.user.email
             }
           ]);
 
         if (insertError) {
-          console.error('Error creating user in database:', insertError);
           throw new Error('Erro ao criar usuário no banco de dados');
         }
       } else if (userError) {
         throw userError;
       }
 
-      console.log('Login successful, redirecting...');
       router.replace('/(tabs)');
     } catch (error: any) {
-      console.error('Login error:', error);
       Alert.alert('Erro', error.message || 'Não foi possível fazer login');
     } finally {
       setLoading(false);
@@ -381,4 +341,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-}); 
+});
