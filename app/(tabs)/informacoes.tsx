@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, Linking, Modal } from 'react-native';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, Linking, Modal, TextInput, Alert } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useProfile } from '@/contexts/ProfileContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Moon, Sun, Github, Heart, Mail, User, LogOut } from 'lucide-react-native';
 import Constants from 'expo-constants';
-import ProfileForm from '@/components/ProfileForm';
+import { supabase } from '@/lib/supabase';
 
 export default function InformacoesScreen() {
   const { theme, themeType, toggleTheme } = useTheme();
   const { profile, signOut } = useProfile();
   const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [isLogin, setIsLogin] = useState(false);
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -19,6 +23,155 @@ export default function InformacoesScreen() {
       console.error('Erro ao fazer logout:', error);
     }
   };
+
+  const handleCreateProfile = async () => {
+    if (!email || !senha) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      console.log('Iniciando criação de conta...');
+      
+      // Registrar usuário com Supabase Auth
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: senha.trim(),
+        options: {
+          emailRedirectTo: 'habitcontrol://confirm-email',
+        },
+      });
+
+      console.log('Resposta do Supabase:', { authData, error: signUpError });
+
+      if (signUpError) throw signUpError;
+
+      if (authData.user) {
+        // Inserir usuário na tabela usuarios após confirmação
+        const { error: dbError } = await supabase
+          .from('usuarios')
+          .insert([
+            { 
+              id: authData.user.id,
+              email: email.trim(),
+              senha: senha.trim() 
+            }
+          ]);
+
+        if (dbError) throw dbError;
+
+        Alert.alert(
+          'Sucesso', 
+          'Por favor, verifique seu email para confirmar sua conta.',
+          [{ text: 'OK', onPress: () => setProfileModalVisible(false) }]
+        );
+      }
+    } catch (error: any) {
+      console.error('Erro ao criar perfil:', error);
+      Alert.alert('Erro', error.message || 'Não foi possível criar o perfil');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async () => {
+    if (!email || !senha) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: senha.trim(),
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        Alert.alert('Sucesso', 'Login realizado com sucesso!');
+        setProfileModalVisible(false);
+      }
+    } catch (error: any) {
+      console.error('Erro ao fazer login:', error);
+      Alert.alert('Erro', error.message || 'Não foi possível fazer login');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderAuthForm = () => (
+    <View style={styles.formContainer}>
+      <Text style={[styles.label, { color: theme.colors.text }]}>E-mail</Text>
+      <TextInput
+        style={[
+          styles.input,
+          {
+            color: theme.colors.text,
+            borderColor: theme.colors.border,
+            backgroundColor: theme.dark ? theme.colors.background : '#F9FAFC',
+          },
+        ]}
+        placeholder="Seu e-mail"
+        placeholderTextColor={theme.colors.inactive}
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        editable={!loading}
+      />
+
+      <Text style={[styles.label, { color: theme.colors.text }]}>Senha</Text>
+      <TextInput
+        style={[
+          styles.input,
+          {
+            color: theme.colors.text,
+            borderColor: theme.colors.border,
+            backgroundColor: theme.dark ? theme.colors.background : '#F9FAFC',
+          },
+        ]}
+        placeholder="Sua senha"
+        placeholderTextColor={theme.colors.inactive}
+        value={senha}
+        onChangeText={setSenha}
+        secureTextEntry
+        autoCapitalize="none"
+        editable={!loading}
+      />
+
+      <TouchableOpacity
+        style={[
+          styles.saveButton, 
+          { backgroundColor: theme.colors.primary },
+          loading && { opacity: 0.7 }
+        ]}
+        onPress={isLogin ? handleLogin : handleCreateProfile}
+        disabled={loading}
+      >
+        <Text style={styles.saveButtonText}>
+          {loading ? 'Carregando...' : isLogin ? 'Entrar' : 'Criar Conta'}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.switchAuthButton}
+        onPress={() => {
+          setIsLogin(!isLogin);
+          setEmail('');
+          setSenha('');
+        }}
+      >
+        <Text style={[styles.switchAuthText, { color: theme.colors.primary }]}>
+          {isLogin ? 'Não tem uma conta? Criar conta' : 'Já tem uma conta? Entrar'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -39,42 +192,33 @@ export default function InformacoesScreen() {
                 <View style={styles.profileInfo}>
                   <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
                     <Text style={styles.avatarText}>
-                      {profile.name.charAt(0).toUpperCase()}
+                      {profile.email.charAt(0).toUpperCase()}
                     </Text>
                   </View>
                   <View style={styles.profileDetails}>
-                    <Text style={[styles.profileName, { color: theme.colors.text }]}>
-                      {profile.name}
-                    </Text>
-                    <Text style={[styles.profileEmail, { color: theme.colors.inactive }]}>
+                    <Text style={[styles.profileEmail, { color: theme.colors.text }]}>
                       {profile.email}
                     </Text>
                   </View>
                 </View>
-                <View style={styles.profileActions}>
-                  <TouchableOpacity
-                    style={[styles.profileButton, { backgroundColor: theme.colors.primary }]}
-                    onPress={() => setProfileModalVisible(true)}
-                  >
-                    <User size={20} color="#FFF" />
-                    <Text style={styles.profileButtonText}>Editar Perfil</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.profileButton, { backgroundColor: theme.colors.error }]}
-                    onPress={handleSignOut}
-                  >
-                    <LogOut size={20} color="#FFF" />
-                    <Text style={styles.profileButtonText}>Sair</Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  style={[styles.profileButton, { backgroundColor: theme.colors.error }]}
+                  onPress={handleSignOut}
+                >
+                  <LogOut size={20} color="#FFF" />
+                  <Text style={styles.profileButtonText}>Sair</Text>
+                </TouchableOpacity>
               </>
             ) : (
               <TouchableOpacity
                 style={[styles.profileButton, { backgroundColor: theme.colors.primary }]}
-                onPress={() => setProfileModalVisible(true)}
+                onPress={() => {
+                  setIsLogin(false);
+                  setProfileModalVisible(true);
+                }}
               >
                 <User size={20} color="#FFF" />
-                <Text style={styles.profileButtonText}>Criar Perfil</Text>
+                <Text style={styles.profileButtonText}>Entrar / Criar Conta</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -175,16 +319,21 @@ export default function InformacoesScreen() {
         <View style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-              {profile ? 'Editar Perfil' : 'Criar Perfil'}
+              {isLogin ? 'Entrar' : 'Criar Conta'}
             </Text>
             <TouchableOpacity
               style={styles.closeButton}
-              onPress={() => setProfileModalVisible(false)}
+              onPress={() => {
+                setProfileModalVisible(false);
+                setEmail('');
+                setSenha('');
+              }}
+              disabled={loading}
             >
               <Text style={[styles.closeButtonText, { color: theme.colors.text }]}>✕</Text>
             </TouchableOpacity>
           </View>
-          <ProfileForm onClose={() => setProfileModalVisible(false)} />
+          {renderAuthForm()}
         </View>
       </Modal>
     </View>
@@ -246,17 +395,8 @@ const styles = StyleSheet.create({
   profileDetails: {
     flex: 1,
   },
-  profileName: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
   profileEmail: {
     fontSize: 14,
-  },
-  profileActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
   },
   profileButton: {
     flexDirection: 'row',
@@ -353,5 +493,41 @@ const styles = StyleSheet.create({
   closeButtonText: {
     fontSize: 20,
     fontWeight: '600',
+  },
+  formContainer: {
+    padding: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  input: {
+    height: 50,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    fontSize: 16,
+  },
+  saveButton: {
+    height: 50,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 30,
+  },
+  saveButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  switchAuthButton: {
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  switchAuthText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
