@@ -17,7 +17,7 @@ import { useRouter } from 'expo-router';
 import { useProfile } from '@/contexts/ProfileContext';
 
 export default function LoginScreen() {
-  const { theme } = useTheme();
+  const { theme, themeType } = useTheme();
   const router = useRouter();
   const { profile } = useProfile();
   const [isLogin, setIsLogin] = useState(true);
@@ -82,7 +82,8 @@ export default function LoginScreen() {
         ]);
 
       if (dbError) {
-        await supabase.auth.admin.deleteUser(authData.user.id);
+        // Não podemos usar a API admin no cliente, então apenas reportamos o erro
+        console.error('Erro ao criar usuário no banco de dados:', dbError);
         throw new Error('Erro ao criar usuário no banco de dados: ' + dbError.message);
       }
 
@@ -187,7 +188,7 @@ export default function LoginScreen() {
                   {
                     color: theme.colors.text,
                     borderColor: theme.colors.border,
-                    backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                    backgroundColor: themeType === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
                   },
                 ]}
                 placeholder="Seu e-mail"
@@ -208,7 +209,7 @@ export default function LoginScreen() {
                   {
                     color: theme.colors.text,
                     borderColor: theme.colors.border,
-                    backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                    backgroundColor: themeType === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
                   },
                 ]}
                 placeholder="Sua senha"

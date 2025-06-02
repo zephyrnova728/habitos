@@ -50,13 +50,13 @@ export default function InformacoesScreen() {
 
       if (authData.user) {
         // Inserir usuário na tabela usuarios após confirmação
+        // NUNCA armazene senhas no banco de dados!
         const { error: dbError } = await supabase
           .from('usuarios')
           .insert([
             { 
               id: authData.user.id,
-              email: email.trim(),
-              senha: senha.trim() 
+              email: email.trim()
             }
           ]);
 
@@ -113,7 +113,7 @@ export default function InformacoesScreen() {
           {
             color: theme.colors.text,
             borderColor: theme.colors.border,
-            backgroundColor: theme.dark ? theme.colors.background : '#F9FAFC',
+            backgroundColor: themeType === 'dark' ? theme.colors.background : '#F9FAFC',
           },
         ]}
         placeholder="Seu e-mail"
@@ -132,7 +132,7 @@ export default function InformacoesScreen() {
           {
             color: theme.colors.text,
             borderColor: theme.colors.border,
-            backgroundColor: theme.dark ? theme.colors.background : '#F9FAFC',
+            backgroundColor: themeType === 'dark' ? theme.colors.background : '#F9FAFC',
           },
         ]}
         placeholder="Sua senha"
